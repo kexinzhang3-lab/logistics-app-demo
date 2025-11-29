@@ -15,87 +15,82 @@ if 'language' not in st.session_state:
 def toggle_language():
     st.session_state.language = 'en' if st.session_state.language == 'zh' else 'zh'
 
-# --- 2. 双语字典 (Translation Dictionary) ---
+# --- 2. 双语字典 (Translation) ---
 tr = {
     'zh': {
-        'title': "🚛 物流决策支持系统 v4.0",
-        'subtitle': "集成运筹优化、库存管理与路径规划的教学平台",
+        'title': "🚛 物流决策支持系统 v5.0 (全功能版)",
+        'subtitle': "集成运筹优化、库存管理与路径规划的综合平台",
         'sidebar_title': "⚙️ 控制面板",
-        'sidebar_info': "请选择功能模块",
         'modules': ["1. 车辆路径规划 (VRP)", "2. EOQ 库存模型", "3. 选址优化 (MIP)"],
-        # VRP 模块
+        # VRP
         'vrp_title': "🗺️ 车辆路径规划系统",
-        'vrp_desc': "通过 :red-background[运筹优化算法] 计算多车辆的最短配送路径。",
         'vrp_mode': "数据输入方式",
         'vrp_modes': ["方式 A: 输入 X/Y 坐标 (地图模式)", "方式 B: 输入距离矩阵 (课本模式)"],
         'vrp_params': "👇在此配置参数",
         'num_cust': "客户数量",
         'veh_cap': "车辆载重",
         'open_vrp': "车辆不回仓库 (Open VRP)",
-        'open_vrp_hint': "勾选后，车辆送完最后一个客户直接下班，不再计算回程距离。",
+        'open_vrp_hint': "勾选后，车辆送完最后一个客户直接下班。",
         'btn_plan': "🚀 立即规划路径",
-        'res_dist': "总行驶距离",
-        'res_veh': "所需车辆",
-        'demand_table': "各点需求量",
-        'dist_table': "距离矩阵 (km)",
-        'coord_table': "坐标列表",
         'no_solution': "无解 (可能载重不足)",
-        # EOQ 模块
+        # EOQ
         'eoq_title': "📦 库存控制中心",
-        'tab1': "🧮 计算器",
-        'tab2': "📖 公式原理",
         'D': "年需求量 (D)",
         'S': "单次订货成本 (S)",
         'H': "单位持有成本 (H)",
         'btn_calc': "计算 EOQ",
-        'eoq_res': "最佳订货量",
-        'eoq_desc': "该公式用于平衡订货成本与持有成本。",
-        # Location 模块
-        'loc_title': "🏭 选址优化",
-        'loc_warn': "⚠️ 该模块正在维护中..."
+        # Location (找回的功能)
+        'loc_title': "🏭 工厂选址与运输优化 (MIP)",
+        'n_factories': "备选工厂数量",
+        'n_customers': "客户数量",
+        'cap_label': "最大产能",
+        'fixed_cost': "建设成本",
+        'dem_label': "需求量",
+        'btn_loc_calc': "🚀 计算最优选址",
+        'loc_res': "选址决策结果",
+        'total_cost': "总综合成本",
+        'trans_cost': "运输费用",
+        'build_cost': "建设费用"
     },
     'en': {
-        'title': "🚛 Logistics Decision Support v4.0",
+        'title': "🚛 Logistics Master v5.0 (Full)",
         'subtitle': "Integrated Platform for OR, Inventory & Routing",
         'sidebar_title': "⚙️ Control Panel",
-        'sidebar_info': "Select Module",
         'modules': ["1. Vehicle Routing (VRP)", "2. EOQ Model", "3. Facility Location (MIP)"],
         # VRP
         'vrp_title': "🗺️ Vehicle Routing System",
-        'vrp_desc': "Optimize routes using :red-background[Operations Research].",
         'vrp_mode': "Input Mode",
-        'vrp_modes': ["Mode A: X/Y Coordinates (Map)", "Mode B: Distance Matrix (Textbook)"],
+        'vrp_modes': ["Mode A: Coordinates", "Mode B: Distance Matrix"],
         'vrp_params': "👇 Parameters",
-        'num_cust': "Number of Customers",
+        'num_cust': "Customers",
         'veh_cap': "Vehicle Capacity",
-        'open_vrp': "Open VRP (No Return)",
-        'open_vrp_hint': "Vehicles end their route at the last customer.",
+        'open_vrp': "Open VRP",
+        'open_vrp_hint': "No return to depot.",
         'btn_plan': "🚀 Optimize Routes",
-        'res_dist': "Total Distance",
-        'res_veh': "Vehicles Used",
-        'demand_table': "Demands",
-        'dist_table': "Distance Matrix (km)",
-        'coord_table': "Coordinates",
-        'no_solution': "Infeasible (Check Capacity)",
+        'no_solution': "Infeasible",
         # EOQ
         'eoq_title': "📦 Inventory Control",
-        'tab1': "🧮 Calculator",
-        'tab2': "📖 Formula",
         'D': "Annual Demand (D)",
         'S': "Setup Cost (S)",
         'H': "Holding Cost (H)",
         'btn_calc': "Calculate EOQ",
-        'eoq_res': "Optimal Order Qty",
-        'eoq_desc': "Balances setup costs and holding costs.",
         # Location
-        'loc_title': "🏭 Facility Location",
-        'loc_warn': "⚠️ Module under maintenance..."
+        'loc_title': "🏭 Facility Location (MIP)",
+        'n_factories': "Potential Factories",
+        'n_customers': "Customers",
+        'cap_label': "Capacity",
+        'fixed_cost': "Fixed Cost",
+        'dem_label': "Demand",
+        'btn_loc_calc': "🚀 Optimize Location",
+        'loc_res': "Location Decisions",
+        'total_cost': "Total Cost",
+        'trans_cost': "Transport Cost",
+        'build_cost': "Construction Cost"
     }
 }
 t = tr[st.session_state.language]
 
-# --- 3. 顶部 Banner 与 标题 ---
-st.image("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80", use_container_width=True)
+# --- 3. 顶部 Banner ---
 col_h1, col_h2 = st.columns([5, 1])
 with col_h1:
     st.title(t['title'])
@@ -107,25 +102,15 @@ st.divider()
 # --- 4. 侧边栏 ---
 with st.sidebar:
     st.header(t['sidebar_title'])
-    st.info(t['sidebar_info'])
-    
-    # 这里的 options 需要处理一下，只取索引 0,1,2，或者直接用中文列表
-    # 简单起见，我们根据语言显示不同列表，但逻辑通过 index 判断
     selected_module_text = st.radio("Nav", t['modules'], label_visibility="collapsed")
-    
-    # 判断选了第几个（0, 1, 2）
     module_index = t['modules'].index(selected_module_text)
-
     st.markdown("---")
-    st.caption("Powered by Python & Streamlit")
 
 # ==================================================
-# 模块 1: VRP (双语 + 美化 + 双模式)
+# 模块 1: VRP (保留刚才那个好的版本)
 # ==================================================
 def app_vrp():
     st.subheader(t['vrp_title'])
-    st.markdown(t['vrp_desc'])
-    
     input_mode = st.radio(t['vrp_mode'], t['vrp_modes'])
     
     col1, col2 = st.columns([1, 2])
@@ -140,39 +125,29 @@ def app_vrp():
     demands = []
 
     with col2:
-        # --- 方式 A: 坐标模式 ---
-        if input_mode == t['vrp_modes'][0]: 
+        if input_mode == t['vrp_modes'][0]: # 坐标模式
             if 'coord_df' not in st.session_state or len(st.session_state.coord_df) != num_customers + 1:
                 init_data = {'x': [50]* (num_customers+1), 'y': [50]* (num_customers+1), 'demand': [10]* (num_customers+1)}
-                init_data['demand'][0] = 0
-                init_data['x'][0] = 0; init_data['y'][0] = 0
+                init_data['demand'][0] = 0; init_data['x'][0] = 0; init_data['y'][0] = 0
                 st.session_state.coord_df = pd.DataFrame(init_data)
                 st.session_state.coord_df.index = ['W'] + [f'C{i}' for i in range(1, num_customers+1)]
-
-            st.caption(t['coord_table'])
             edited_df = st.data_editor(st.session_state.coord_df, key="editor_coords", use_container_width=True, height=200)
             coords = edited_df[['x', 'y']].values
             demands = edited_df['demand'].values
-            
             n_total = len(coords)
             dist_matrix = np.zeros((n_total, n_total))
             for i in range(n_total):
                 for j in range(n_total):
                     dist_matrix[i][j] = np.linalg.norm(coords[i] - coords[j])
-        
-        # --- 方式 B: 矩阵模式 ---
-        else:
+        else: # 矩阵模式
             n_total = num_customers + 1
             node_names = ['W'] + [f'C{i}' for i in range(1, n_total)]
-            
             c_a, c_b = st.columns([1, 2])
             with c_a:
-                st.caption(t['demand_table'])
                 init_demands = pd.DataFrame({'D': [0] + [10]*num_customers}, index=node_names)
                 edited_demands = st.data_editor(init_demands, key="editor_demands", use_container_width=True, height=200)
                 demands = edited_demands['D'].values
             with c_b:
-                st.caption(t['dist_table'])
                 if 'dist_df' not in st.session_state or len(st.session_state.dist_df) != n_total:
                     st.session_state.dist_df = pd.DataFrame(np.zeros((n_total, n_total)), index=node_names, columns=node_names)
                 edited_matrix = st.data_editor(st.session_state.dist_df, key="editor_matrix", use_container_width=True, height=200)
@@ -181,25 +156,21 @@ def app_vrp():
     if st.button(t['btn_plan'], type="primary"):
         solve_dist_matrix = dist_matrix.copy()
         if is_open_vrp:
-            for i in range(1, len(solve_dist_matrix)):
-                solve_dist_matrix[i][0] = 0
+            for i in range(1, len(solve_dist_matrix)): solve_dist_matrix[i][0] = 0
 
-        # 求解
-        n = len(dist_matrix)
         prob = pulp.LpProblem("VRP", pulp.LpMinimize)
-        x = pulp.LpVariable.dicts("x", (range(n), range(n)), cat='Binary')
-        u = pulp.LpVariable.dicts("u", range(n), 0, vehicle_cap, pulp.LpInteger)
+        x = pulp.LpVariable.dicts("x", (range(n_total), range(n_total)), cat='Binary')
+        u = pulp.LpVariable.dicts("u", range(n_total), 0, vehicle_cap, pulp.LpInteger)
 
-        prob += pulp.lpSum([solve_dist_matrix[i][j] * x[i][j] for i in range(n) for j in range(n)])
+        prob += pulp.lpSum([solve_dist_matrix[i][j] * x[i][j] for i in range(n_total) for j in range(n_total)])
 
-        for i in range(1, n):
-            prob += pulp.lpSum([x[i][j] for j in range(n) if i != j]) == 1
-            prob += pulp.lpSum([x[j][i] for j in range(n) if i != j]) == 1
+        for i in range(1, n_total):
+            prob += pulp.lpSum([x[i][j] for j in range(n_total) if i != j]) == 1
+            prob += pulp.lpSum([x[j][i] for j in range(n_total) if i != j]) == 1
         
-        for i in range(1, n):
-            for j in range(1, n):
-                if i != j:
-                    prob += u[i] - u[j] + vehicle_cap * x[i][j] <= vehicle_cap - demands[j]
+        for i in range(1, n_total):
+            for j in range(1, n_total):
+                if i != j: prob += u[i] - u[j] + vehicle_cap * x[i][j] <= vehicle_cap - demands[j]
 
         prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=5))
 
@@ -210,7 +181,7 @@ def app_vrp():
             
             # 统计车辆数
             veh_count = 0
-            for j in range(1, n):
+            for j in range(1, n_total):
                 if x[0][j].varValue > 0.5: veh_count += 1
             
             col_res1.metric(t['res_dist'], f"{pulp.value(prob.objective):.2f}")
@@ -219,21 +190,18 @@ def app_vrp():
             # 绘图
             fig, ax = plt.subplots(figsize=(6, 4))
             G = nx.DiGraph()
-            if coords is not None:
-                pos = {i: (coords[i][0], coords[i][1]) for i in range(n)}
-            else:
-                pos = nx.circular_layout(range(n))
+            if coords is not None: pos = {i: (coords[i][0], coords[i][1]) for i in range(n_total)}
+            else: pos = nx.circular_layout(range(n_total))
             
             nx.draw_networkx_nodes(G, pos, nodelist=[0], node_color='red', node_size=300, ax=ax)
-            nx.draw_networkx_nodes(G, pos, nodelist=range(1,n), node_color='blue', node_size=200, ax=ax)
-            nx.draw_networkx_labels(G, pos, labels={i: (f"W" if i==0 else f"C{i}") for i in range(n)}, ax=ax, font_color='white', font_size=8)
+            nx.draw_networkx_nodes(G, pos, nodelist=range(1,n_total), node_color='blue', node_size=200, ax=ax)
+            nx.draw_networkx_labels(G, pos, labels={i: (f"W" if i==0 else f"C{i}") for i in range(n_total)}, ax=ax, font_color='white', font_size=8)
 
-            for i in range(n):
-                for j in range(n):
+            for i in range(n_total):
+                for j in range(n_total):
                     if i != j and x[i][j].varValue > 0.5:
                         if is_open_vrp and j == 0: pass 
-                        else:
-                            nx.draw_networkx_edges(G, pos, edgelist=[(i,j)], edge_color='black', width=1.5, ax=ax, arrowsize=15)
+                        else: nx.draw_networkx_edges(G, pos, edgelist=[(i,j)], edge_color='black', width=1.5, ax=ax, arrowsize=15)
             st.pyplot(fig)
         else:
             st.error(t['no_solution'])
@@ -256,17 +224,128 @@ def app_eoq():
             eoq = int(math.sqrt(2*D_val*S_val/H_val))
             st.balloons()
             st.success(f"{t['eoq_res']}: **{eoq}**")
+            
+            # **新增：详细计算步骤展示**
+            numerator = 2 * D_val * S_val
+            fraction = numerator / H_val
+            
+            st.info("💡 **计算步骤详解 (Step-by-Step):**")
+            st.markdown(f"""
+            1.  **计算分子 (2 * D * S)**:  
+                $2 \\times {D_val} \\times {S_val} = {numerator}$
+            
+            2.  **除以持有成本 ( / H)**:  
+                ${numerator} \\div {H_val} = {fraction}$
+            
+            3.  **开根号 (√)**:  
+                $\\sqrt{{{fraction}}} \\approx {eoq}$
+            """)
     
     with tab2:
         st.latex(r"Q^* = \sqrt{\frac{2DS}{H}}")
         st.caption(t['eoq_desc'])
 
 # ==================================================
-# 模块 3: 选址 (保留位)
+# 模块 3: 选址优化 (找回的功能!)
 # ==================================================
 def app_location():
     st.subheader(t['loc_title'])
-    st.warning(t['loc_warn'])
+    
+    # 侧边栏参数
+    c1, c2 = st.columns(2)
+    num_factories = c1.slider(t['n_factories'], 1, 5, 3)
+    num_customers = c2.slider(t['n_customers'], 1, 5, 3)
+    
+    factory_names = [f"F{i+1}" for i in range(num_factories)]
+    customer_names = [f"D{j+1}" for j in range(num_customers)]
+    
+    # 参数输入
+    col_f, col_d = st.columns(2)
+    supply_data = {}
+    fixed_cost_data = {}
+    
+    with col_f:
+        st.info("🏭 工厂参数")
+        for f in factory_names:
+            c_cap, c_cost = st.columns(2)
+            supply_data[f] = c_cap.number_input(f"{f} {t['cap_label']}", value=100, key=f"cap_{f}")
+            fixed_cost_data[f] = c_cost.number_input(f"{f} {t['fixed_cost']}", value=5000, step=1000, key=f"cost_{f}")
+            
+    with col_d:
+        st.info("🏢 客户需求")
+        demand_data = {}
+        for d in customer_names:
+            demand_data[d] = st.number_input(f"{d} {t['dem_label']}", value=60, key=f"dem_{d}")
+            
+    # 运费矩阵
+    st.write("🚚 运费矩阵")
+    default_costs = [[10 + (i + j) * 2 for j in range(num_customers)] for i in range(num_factories)]
+    cost_df = pd.DataFrame(default_costs, index=factory_names, columns=customer_names)
+    edited_costs = st.data_editor(cost_df, use_container_width=True)
+    
+    if st.button(t['btn_loc_calc'], type="primary"):
+        # MIP 模型
+        prob = pulp.LpProblem("Location", pulp.LpMinimize)
+        flow = pulp.LpVariable.dicts("Flow", (factory_names, customer_names), 0, None, pulp.LpInteger)
+        is_open = pulp.LpVariable.dicts("IsOpen", factory_names, cat='Binary')
+        
+        transport_cost = pulp.lpSum([flow[f][d] * edited_costs.loc[f, d] for f in factory_names for d in customer_names])
+        build_cost = pulp.lpSum([is_open[f] * fixed_cost_data[f] for f in factory_names])
+        prob += transport_cost + build_cost
+        
+        for d in customer_names:
+            prob += pulp.lpSum([flow[f][d] for f in factory_names]) >= demand_data[d]
+        for f in factory_names:
+            prob += pulp.lpSum([flow[f][d] for d in customer_names]) <= supply_data[f] * is_open[f]
+            
+        prob.solve()
+        
+        if pulp.LpStatus[prob.status] == 'Optimal':
+            total = pulp.value(prob.objective)
+            trans = pulp.value(transport_cost)
+            build = pulp.value(build_cost)
+            
+            st.success("最优方案已找到！")
+            m1, m2, m3 = st.columns(3)
+            m1.metric(t['total_cost'], f"{total:,.0f}")
+            m2.metric(t['trans_cost'], f"{trans:,.0f}")
+            m3.metric(t['build_cost'], f"{build:,.0f}")
+            
+            # 显示决策
+            cols = st.columns(num_factories)
+            opened = []
+            for i, f in enumerate(factory_names):
+                if is_open[f].varValue > 0.5:
+                    cols[i].success(f"{f}: 建设 ✅")
+                    opened.append(f)
+                else:
+                    cols[i].error(f"{f}: 关闭 ❌")
+                    
+            # 绘图
+            G = nx.DiGraph()
+            pos = {}
+            for i, f in enumerate(factory_names):
+                G.add_node(f, layer=0, status=('open' if f in opened else 'closed'))
+                pos[f] = (0, -i*1.5)
+            for i, d in enumerate(customer_names):
+                G.add_node(d, layer=1)
+                pos[d] = (2, -i*1.5)
+            
+            edge_labels = {}
+            for f in factory_names:
+                for d in customer_names:
+                    val = flow[f][d].varValue
+                    if val and val > 0:
+                        G.add_edge(f, d)
+                        edge_labels[(f,d)] = int(val)
+            
+            fig, ax = plt.subplots()
+            color_map = ['gold' if G.nodes[n].get('status')=='open' else ('lightgrey' if G.nodes[n].get('status')=='closed' else 'lightgreen') for n in G.nodes()]
+            nx.draw(G, pos, with_labels=True, node_color=color_map, node_size=2000, ax=ax)
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, label_pos=0.25)
+            st.pyplot(fig)
+        else:
+            st.error("无解 (产能不足)")
 
 # --- 路由 ---
 if module_index == 0:
