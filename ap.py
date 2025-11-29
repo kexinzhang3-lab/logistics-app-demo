@@ -1,93 +1,81 @@
 import streamlit as st
-import pandas as pd
-import pulp
 import networkx as nx
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="物流运输优化器", layout="wide")
+# --- 1. 语言设置与切换 ---
+if 'language' not in st.session_state:
+    st.session_state.language = 'zh'  # 默认中文
 
-st.title("🏭 物流运输优化与可视化系统")
-st.markdown("---")
-
-with st.sidebar:
-    st.header("参数设置")
-    num_factories = st.slider("工厂数量 (F)", min_value=1, max_value=5, value=3)
-    num_customers = st.slider("需求地数量 (D)", min_value=1, max_value=5, value=3)
-    
-    factory_names = [f"F{i+1}" for i in range(num_factories)]
-    customer_names = [f"D{j+1}" for j in range(num_customers)]
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("工厂产能")
-    supply_data = {}
-    for i, f_name in enumerate(factory_names):
-        supply_data[f_name] = st.number_input(f"工厂 {f_name} 最大产能", value=100, key=f"s_{i}", min_value=0)
-
-with col2:
-    st.subheader("目的地需求")
-    demand_data = {}
-    for i, d_name in enumerate(customer_names):
-        demand_data[d_name] = st.number_input(f"目的地 {d_name} 需求量", value=80, key=f"d_{i}", min_value=0)
-
-st.subheader("运输单价矩阵")
-default_costs = [[10 + (i + j) * 2 for j in range(num_customers)] for i in range(num_factories)]
-cost_matrix_df = pd.DataFrame(default_costs, index=factory_names, columns=customer_names)
-edited_costs = st.data_editor(cost_matrix_df, num_rows="dynamic")
-
-if st.button("开始计算最优方案并可视化"):
-    try:
-        cost_df = edited_costs.astype(float)
-    except:
-        st.error("请确保运费矩阵中的所有值都是有效的数字！")
-        st.stop()
-
-    prob = pulp.LpProblem("Transportation_Problem", pulp.LpMinimize)
-    flow = pulp.LpVariable.dicts("Route", (factory_names, customer_names), 0, None, pulp.LpInteger)
-
-    prob += pulp.lpSum([flow[f][d] * cost_df.loc[f, d] for f in factory_names for d in customer_names])
-
-    for f in factory_names:
-        prob += pulp.lpSum([flow[f][d] for d in customer_names]) <= supply_data[f]
-    
-    for d in customer_names:
-        prob += pulp.lpSum([flow[f][d] for f in factory_names]) >= demand_data[d]
-
-    prob.solve()
-
-    if pulp.LpStatus[prob.status] == 'Optimal':
-        st.success(f"找到最优方案！最低总费用: {pulp.value(prob.objective):.2f}")
-        
-        G = nx.DiGraph()
-        pos = {}
-        edge_labels = {}
-        
-        for i, f in enumerate(factory_names):
-            G.add_node(f, layer=0)
-            pos[f] = (0, -i * 2) 
-        
-        for i, d in enumerate(customer_names):
-            G.add_node(d, layer=1)
-            pos[d] = (1, -i * 2)
-            
-        for f in factory_names:
-            for d in customer_names:
-                amount = flow[f][d].varValue
-                if amount > 0:
-                    G.add_edge(f, d)
-                    edge_labels[(f, d)] = f"{int(amount)}"
-
-        fig, ax = plt.subplots(figsize=(10, max(num_factories, num_customers) * 2))
-        color_map = ['#ADD8E6' if G.nodes[n]['layer'] == 0 else '#90EE90' for n in G.nodes()]
-        
-        nx.draw_networkx_nodes(G, pos, node_color=color_map, node_size=3000, ax=ax)
-        nx.draw_networkx_labels(G, pos, font_size=12, font_weight='bold', ax=ax)
-        nx.draw_networkx_edges(G, pos, ax=ax, edge_color='gray', arrows=True, arrowsize=30, width=2)
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red', font_size=14, ax=ax)
-        
-        plt.axis('off')
-        st.pyplot(fig)
-        
+def toggle_language():
+    if st.session_state.language == 'zh':
+        st.session_state.language = 'en'
     else:
-        st.error("无法找到可行解！请检查是否总产能小于总需求。")
+        st.session_state.language = 'zh'
+
+st.button("🌐 中/En", on_click=toggle_language)
+
+# 文本字典
+text = {
+    'zh': {
+        'title': '物流网络优化与成本计算',
+        'factory_cost': '🏭 工厂建设成本 (元)',
+        'transport_cost': '🚚 单位运输成本 (元/公里)',
+        'distance': '📏 运输距离 (公里)',
+        'calc_btn': '计算总成本',
+        'result': '💰 总成本: ',
+        'detail': '其中: 运输 {} + 建设 {}',
+        'viz': '📊 网络可视化 (数字靠近工厂端)',
+        'factory': '工厂',
+        'customer': '客户'
+    },
+    'en': {
+        'title': 'Logistics Network Optimization',
+        'factory_cost': '🏭 Factory Construction Cost ($)',
+        'transport_cost': '🚚 Unit Transport Cost ($/km)',
+        'distance': '📏 Distance (km)',
+        'calc_btn': 'Calculate Total Cost',
+        'result': '💰 Total Cost: ',
+        'detail': 'Transport {} + Construction {}',
+        'viz': '📊 Network Visualization (Labels near source)',
+        'factory': 'Factory',
+        'customer': 'Customer'
+    }
+}
+lang = text[st.session_state.language]
+
+st.title(lang['title'])
+
+# --- 2. 输入参数 (增加了工厂成本) ---
+col1, col2 = st.columns(2)
+with col1:
+    factory_build_cost = st.number_input(lang['factory_cost'], value=10000)
+    transport_unit_cost = st.number_input(lang['transport_cost'], value=5.0)
+with col2:
+    distance = st.number_input(lang['distance'], value=100)
+
+# --- 3. 计算逻辑 ---
+if st.button(lang['calc_btn']):
+    transport_total = transport_unit_cost * distance
+    total_cost = transport_total + factory_build_cost
+    
+    st.success(f"{lang['result']}{total_cost}")
+    st.info(lang['detail'].format(transport_total, factory_build_cost))
+
+    # --- 4. 可视化 (数字靠近左/开头) ---
+    st.subheader(lang['viz'])
+    
+    G = nx.DiGraph()
+    G.add_edge('Factory', 'Customer', weight=distance)
+    
+    pos = {'Factory': (0, 0), 'Customer': (2, 0)} # 简单的左右布局
+    
+    fig, ax = plt.subplots(figsize=(6, 3))
+    
+    # 画节点
+    nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=2000, font_family='sans-serif')
+    
+    # 画边的标签 (关键修改：label_pos=0.2 让数字靠近发出端/开头)
+    edge_labels = {('Factory', 'Customer'): f"{distance} km"}
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, label_pos=0.2, font_color='red')
+    
+    st.pyplot(fig)
