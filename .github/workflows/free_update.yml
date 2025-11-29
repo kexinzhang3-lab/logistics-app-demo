@@ -6,7 +6,6 @@ on:
 
 jobs:
   manual_update:
-    if: contains(github.event.comment.body, '/update_page')
     runs-on: ubuntu-latest
     
     permissions:
