@@ -1,0 +1,43 @@
+name: Free Manual Updater
+
+on:
+  issue_comment:
+    # 监听 Issue 新评论
+    types: [created]
+
+jobs:
+  manual_update:
+    # 检查评论是否包含触发词
+    if: contains(github.event.comment.body, '/update_page')
+    runs-on: ubuntu-latest
+    
+    # **关键权限配置：允许写入文件**
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: 1. Checkout Code
+        # 下载仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: 2. Set up Python
+        # 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 3. Execute Manual Update Script
+        # 运行 Python 脚本
+        env:
+          # 传递用户评论内容给 Python 脚本
+          USER_COMMENT: ${{ github.event.comment.body }}
+        run: python scripts/manual_update.py
+        
+      - name: 4. Commit Changes
+        # 自动提交 Python 脚本所做的修改
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'AUTO: Update content via GitHub Issue comment'
