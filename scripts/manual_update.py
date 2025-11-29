@@ -20,8 +20,8 @@ new_content = match.group(2).strip()
 
 # 2. 写入文件
 try:
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(new_content)
+    full_path = os.
+path.join(repo_root, file_path) # <--- 新增的路径构建
 
     print(f"✅ SUCCESS: Successfully wrote content to {file_path}")
 
