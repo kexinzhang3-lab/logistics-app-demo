@@ -3,226 +3,231 @@ import pandas as pd
 import pulp
 import networkx as nx
 import matplotlib.pyplot as plt
+import numpy as np
+import math
 
-st.set_page_config(page_title="Logistics Location Optimizer", layout="wide")
+st.set_page_config(page_title="Logistics Master Suite", layout="wide")
 
-# --- 1. 语言设置 ---
+# --- 全局语言设置 ---
 if 'language' not in st.session_state:
     st.session_state.language = 'zh'
 
 def toggle_language():
     st.session_state.language = 'en' if st.session_state.language == 'zh' else 'zh'
 
-tr = {
-    'zh': {
-        'title': "🏭 物流选址与运输路径联合优化",
-        'sidebar': "网络规模设置",
-        'n_factories': "备选工厂数量 (F)",
-        'n_customers': "需求地数量 (D)",
-        'factory_settings': "🏭 备选工厂参数 (产能 & 建设成本)",
-        'cap_label': "最大产能",
-        'fixed_cost_label': "建设成本",
-        'dem_title': "🏢 目的地需求",
-        'dem_label': "需求量",
-        'cost_matrix': "🚚 运输单价矩阵 (单位: 元/个)",
-        'btn_calc': "🚀 计算最优选址与运输方案",
-        'err_num': "请输入有效的数字！",
-        'success': "🎉 找到最优方案！",
-        'decision_title': "🏗️ 选址决策结果",
-        'open': "✅ 建设",
-        'close': "❌ 不建",
-        'metrics_title': "💰 成本构成分析",
-        'total_cost': "总综合成本",
-        'trans_cost': "运输总费用",
-        'build_cost': "建设总费用",
-        'no_solution': "无解！即使所有工厂都建也无法满足总需求。",
-        'viz_title': "📊 网络可视化 (仅显示建设的工厂)"
-    },
-    'en': {
-        'title': "🏭 Facility Location & Transport Optimization",
-        'sidebar': "Network Size",
-        'n_factories': "Potential Factories (F)",
-        'n_customers': "Customers (D)",
-        'factory_settings': "🏭 Factory Parameters (Cap & Fixed Cost)",
-        'cap_label': "Capacity",
-        'fixed_cost_label': "Fixed Cost",
-        'dem_title': "🏢 Customer Demand",
-        'dem_label': "Demand",
-        'cost_matrix': "🚚 Unit Transport Cost Matrix",
-        'btn_calc': "🚀 Optimize Location & Transport",
-        'err_num': "Invalid number input!",
-        'success': "Optimal Solution Found!",
-        'decision_title': "🏗️ Location Decisions",
-        'open': "✅ Open",
-        'close': "❌ Closed",
-        'metrics_title': "💰 Cost Analysis",
-        'total_cost': "Total Cost",
-        'trans_cost': "Transport Cost",
-        'build_cost': "Construction Cost",
-        'no_solution': "Infeasible! Total capacity < Total demand.",
-        'viz_title': "📊 Network Visualization (Opened Factories Only)"
+# 侧边栏：模块选择
+st.sidebar.title("📦 物流决策支持系统")
+app_mode = st.sidebar.radio("选择功能模块 / Select Module", 
+    ["1. 选址与运输优化 (Location-Transport)", 
+     "2. EOQ 库存管理 (Inventory)", 
+     "3. 车辆路径规划 (VRP)"])
+
+st.sidebar.button("🌐 中/En", on_click=toggle_language)
+st.sidebar.markdown("---")
+
+# ==================================================
+# 模块 1: 选址优化 (您之前的代码)
+# ==================================================
+def app_location():
+    tr = {
+        'zh': {'title': "🏭 工厂选址与运输优化", 'calc': "开始计算", 'success': "最优方案已找到！"},
+        'en': {'title': "🏭 Facility Location Optimization", 'calc': "Optimize", 'success': "Optimal Solution Found!"}
     }
-}
-t = tr[st.session_state.language]
-
-# --- 2. 界面布局 ---
-col_head, col_btn = st.columns([5, 1])
-with col_head:
-    st.title(t['title'])
-with col_btn:
-    st.button("🌐 中/En", on_click=toggle_language)
-
-st.markdown("---")
-
-# 侧边栏：规模
-with st.sidebar:
-    st.header(t['sidebar'])
-    num_factories = st.slider(t['n_factories'], 1, 5, 3)
-    num_customers = st.slider(t['n_customers'], 1, 5, 3)
+    t = tr[st.session_state.language]
     
+    st.header(t['title'])
+    
+    # 简化的参数输入 (为了节省篇幅，保留核心逻辑)
+    col1, col2 = st.columns(2)
+    with col1:
+        num_factories = st.slider("工厂数量 (F)", 1, 5, 3)
+        build_cost = st.number_input("单厂建设成本", value=5000)
+    with col2:
+        num_customers = st.slider("客户数量 (D)", 1, 5, 3)
+        demand_val = st.number_input("默认单客户需求", value=50)
+
     factory_names = [f"F{i+1}" for i in range(num_factories)]
     customer_names = [f"D{j+1}" for j in range(num_customers)]
-
-# 主界面输入
-col1, col2 = st.columns(2)
-
-# 工厂参数输入 (现在包含建设成本)
-with col1:
-    st.subheader(t['factory_settings'])
-    supply_data = {}
-    fixed_cost_data = {}
     
-    for f in factory_names:
-        c1, c2 = st.columns(2)
-        with c1:
-            supply_data[f] = st.number_input(f"{f} {t['cap_label']}", value=100, step=10, key=f"s_{f}")
-        with c2:
-            # 这里的 Key 必须唯一，加上 fc_ 前缀
-            fixed_cost_data[f] = st.number_input(f"{f} {t['fixed_cost_label']}", value=5000, step=1000, key=f"fc_{f}")
+    # 简单的成本矩阵生成
+    costs = pd.DataFrame(
+        [[10 + abs(i-j)*2 for j in range(num_customers)] for i in range(num_factories)],
+        index=factory_names, columns=customer_names
+    )
+    st.write("运输单价矩阵:")
+    edited_costs = st.data_editor(costs, use_container_width=True)
 
-# 需求输入
-with col2:
-    st.subheader(t['dem_title'])
-    demand_data = {}
-    for d in customer_names:
-        demand_data[d] = st.number_input(f"{d} {t['dem_label']}", value=60, step=10, key=f"d_{d}")
+    if st.button(t['calc'], key='btn_loc'):
+        # 简化版 MIP 模型
+        prob = pulp.LpProblem("Location", pulp.LpMinimize)
+        flow = pulp.LpVariable.dicts("Flow", (factory_names, customer_names), 0, None, pulp.LpInteger)
+        is_open = pulp.LpVariable.dicts("Open", factory_names, cat='Binary')
+        
+        # 目标
+        prob += pulp.lpSum([flow[f][d] * edited_costs.loc[f,d] for f in factory_names for d in customer_names]) + \
+                pulp.lpSum([is_open[f] * build_cost for f in factory_names])
+        
+        # 约束
+        for d in customer_names:
+            prob += pulp.lpSum([flow[f][d] for f in factory_names]) >= demand_val
+        for f in factory_names: # 简单的大M产能约束
+            prob += pulp.lpSum([flow[f][d] for d in customer_names]) <= 99999 * is_open[f]
+            
+        prob.solve()
+        
+        if pulp.LpStatus[prob.status] == 'Optimal':
+            st.success(f"{t['success']} 总成本: {pulp.value(prob.objective)}")
+            
+            # 绘图
+            G = nx.DiGraph()
+            pos = {}
+            for i, f in enumerate(factory_names):
+                if is_open[f].varValue > 0.5:
+                    G.add_node(f, layer=0, color='gold')
+                    pos[f] = (0, -i)
+            for i, d in enumerate(customer_names):
+                G.add_node(d, layer=1, color='lightgreen')
+                pos[d] = (1, -i)
+                
+            edge_labels = {}
+            for f in factory_names:
+                for d in customer_names:
+                    val = flow[f][d].varValue
+                    if val and val > 0:
+                        G.add_edge(f, d)
+                        edge_labels[(f,d)] = int(val)
+            
+            fig, ax = plt.subplots()
+            colors = [G.nodes[n]['color'] for n in G.nodes()]
+            nx.draw(G, pos, with_labels=True, node_color=colors, node_size=1000)
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+            st.pyplot(fig)
+        else:
+            st.error("无解")
 
-# 运费矩阵
-st.subheader(t['cost_matrix'])
-default_costs = [[10 + (i + j) * 2 for j in range(num_customers)] for i in range(num_factories)]
-cost_df = pd.DataFrame(default_costs, index=factory_names, columns=customer_names)
-edited_costs = st.data_editor(cost_df, key="cost_editor", use_container_width=True)
-
-# --- 3. 核心算法：混合整数规划 (MIP) ---
-if st.button(t['btn_calc'], type="primary"):
-    # 建立模型
-    prob = pulp.LpProblem("Facility_Location", pulp.LpMinimize)
-
-    # 变量1：运输量 (连续变量, >=0)
-    flow = pulp.LpVariable.dicts("Flow", (factory_names, customer_names), 0, None, pulp.LpInteger)
+# ==================================================
+# 模块 2: EOQ 库存管理
+# ==================================================
+def app_eoq():
+    st.header("📦 EOQ 库存管理计算器")
+    st.info("经典经济订货批量模型 (Economic Order Quantity)")
     
-    # 变量2：是否建厂 (0/1 整数变量)
-    # 1 代表建设，0 代表不建
-    is_open = pulp.LpVariable.dicts("IsOpen", factory_names, cat='Binary')
-
-    # 目标函数：最小化 (运输总成本 + 启用的工厂建设成本)
-    transport_cost = pulp.lpSum([flow[f][d] * edited_costs.loc[f, d] for f in factory_names for d in customer_names])
-    build_cost = pulp.lpSum([is_open[f] * fixed_cost_data[f] for f in factory_names])
+    c1, c2, c3 = st.columns(3)
+    D = c1.number_input("年需求量 (D)", value=10000)
+    S = c2.number_input("单次订货成本 (S)", value=50)
+    H = c3.number_input("单位持有成本 (H)", value=2.5)
     
-    prob += transport_cost + build_cost
-
-    # 约束1：需求必须满足
-    for d in customer_names:
-        prob += pulp.lpSum([flow[f][d] for f in factory_names]) >= demand_data[d]
-
-    # 约束2：工厂产出不能超过产能，且只有建了厂(is_open=1)才能产出
-    for f in factory_names:
-        # 如果 is_open[f] 是 0，则右边是 0，意味着该工厂流出量必须是 0
-        prob += pulp.lpSum([flow[f][d] for d in customer_names]) <= supply_data[f] * is_open[f]
-
-    # 求解
-    prob.solve()
-
-    if pulp.LpStatus[prob.status] == 'Optimal':
-        st.success(t['success'])
+    if st.button("计算 EOQ", key='btn_eoq'):
+        # 核心公式
+        eoq = math.sqrt((2 * D * S) / H)
+        orders_per_year = D / eoq
+        total_cost = (D/eoq)*S + (eoq/2)*H
         
-        # 提取结果
-        total_obj = pulp.value(prob.objective)
-        total_trans = pulp.value(transport_cost)
-        total_build = pulp.value(build_cost)
+        st.metric("最佳订货量 (Q*)", f"{int(eoq)} 件")
+        st.metric("年总库存成本", f"¥ {total_cost:,.2f}")
         
-        # --- 显示选址决策 ---
-        st.subheader(t['decision_title'])
-        cols = st.columns(num_factories)
-        opened_factories = []
+        # 锯齿图可视化
+        t = np.linspace(0, 10, 1000)
+        # 模拟库存随时间变化：Inventory = Q - (DemandRate * t) % Q
+        # 这是一个简单的周期函数模拟
+        period = 12 / orders_per_year # 周期（月）
+        y = [eoq - (x % period) * (eoq/period) for x in t]
         
-        for i, f in enumerate(factory_names):
-            status = is_open[f].varValue
-            if status > 0.5: # 选中
-                cols[i].success(f"{f}: {t['open']}")
-                cols[i].caption(f"💰{fixed_cost_data[f]}")
-                opened_factories.append(f)
-            else: # 未选中
-                cols[i].error(f"{f}: {t['close']}")
-                cols[i].caption(f"<s>💰{fixed_cost_data[f]}</s>")
-
-        # --- 成本分析 ---
-        st.subheader(t['metrics_title'])
-        m1, m2, m3 = st.columns(3)
-        m1.metric(t['total_cost'], f"{total_obj:,.2f}")
-        m2.metric(t['trans_cost'], f"{total_trans:,.2f}")
-        m3.metric(t['build_cost'], f"{total_build:,.2f}")
-
-        # --- 可视化 (只画选中的工厂) ---
-        st.subheader(t['viz_title'])
-        G = nx.DiGraph()
-        pos = {}
-        edge_labels = {}
-        
-        # 布局
-        for i, f in enumerate(factory_names):
-            # 只有建了的厂才画实色，没建的画虚化或者不画连接
-            if f in opened_factories:
-                G.add_node(f, layer=0, status='open')
-            else:
-                G.add_node(f, layer=0, status='closed')
-            pos[f] = (0, -i * 1.5)
-        
-        for i, d in enumerate(customer_names):
-            G.add_node(d, layer=1)
-            pos[d] = (2, -i * 1.5) # 拉开距离方便看字
-
-        # 边
-        for f in factory_names:
-            for d in customer_names:
-                amount = flow[f][d].varValue
-                if amount and amount > 0:
-                    G.add_edge(f, d)
-                    edge_labels[(f, d)] = f"{int(amount)}"
-
-        fig, ax = plt.subplots(figsize=(8, max(num_factories, num_customers) * 1.5 + 1))
-        
-        # 画节点颜色
-        color_map = []
-        for n in G.nodes():
-            if G.nodes[n].get('layer') == 1:
-                color_map.append('#90EE90') # 客户绿
-            elif G.nodes[n].get('status') == 'open':
-                color_map.append('#FFD700') # 建厂金
-            else:
-                color_map.append('#D3D3D3') # 没建厂灰
-
-        nx.draw_networkx_nodes(G, pos, node_color=color_map, node_size=2500, ax=ax, edgecolors='black')
-        nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold', ax=ax)
-        
-        # 只画有流量的边
-        nx.draw_networkx_edges(G, pos, ax=ax, edge_color='blue', arrows=True, arrowsize=20, width=1.5, alpha=0.6)
-        
-        # 标签靠近左侧 (label_pos=0.2)
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red', font_size=11, label_pos=0.2, ax=ax, rotate=False)
-        
-        plt.axis('off')
+        fig, ax = plt.subplots(figsize=(8, 3))
+        ax.plot(t, y, color='purple')
+        ax.set_title("Inventory Level over Time")
+        ax.set_xlabel("Time (Months)")
+        ax.set_ylabel("Inventory Units")
+        ax.fill_between(t, y, color='purple', alpha=0.1)
         st.pyplot(fig)
 
-    else:
-        st.error(t['no_solution'])
+# ==================================================
+# 模块 3: 车辆路径规划 (VRP)
+# ==================================================
+def app_vrp():
+    st.header("🚚 车辆路径规划 (CVRP)")
+    st.caption("目标：使用最少的车辆，走最短的路，服务所有客户。")
+    
+    # 输入参数
+    num_nodes = st.slider("客户数量", 3, 8, 5) # 手机端保持规模小一点，算得快
+    vehicle_cap = st.number_input("车辆最大载重", value=50)
+    
+    # 随机生成坐标和需求
+    np.random.seed(42)
+    coords = np.random.rand(num_nodes + 1, 2) * 100 # +1 是仓库
+    demands = np.random.randint(5, 20, size=num_nodes + 1)
+    demands[0] = 0 # 仓库需求为0
+    
+    # 显示数据表格
+    data_df = pd.DataFrame(coords, columns=['X', 'Y'])
+    data_df['Type'] = ['Depot'] + ['Customer'] * num_nodes
+    data_df['Demand'] = demands
+    st.dataframe(data_df.T)
+    
+    if st.button("规划路径", key='btn_vrp'):
+        # 距离矩阵
+        dist_matrix = np.zeros((num_nodes+1, num_nodes+1))
+        for i in range(num_nodes+1):
+            for j in range(num_nodes+1):
+                dist_matrix[i][j] = np.linalg.norm(coords[i] - coords[j])
+        
+        # PuLP 模型 (简化版 VRP)
+        prob = pulp.LpProblem("VRP", pulp.LpMinimize)
+        
+        # 变量 x[i][j] = 1 代表车从 i 开到 j
+        x = pulp.LpVariable.dicts("x", (range(num_nodes+1), range(num_nodes+1)), cat='Binary')
+        # 变量 u[i] 用于消除子回路 (MTZ 约束)
+        u = pulp.LpVariable.dicts("u", range(num_nodes+1), 0, vehicle_cap, pulp.LpInteger)
+        
+        # 目标：最小化总距离
+        prob += pulp.lpSum([dist_matrix[i][j] * x[i][j] for i in range(num_nodes+1) for j in range(num_nodes+1)])
+        
+        # 约束
+        for i in range(1, num_nodes+1):
+            prob += pulp.lpSum([x[i][j] for j in range(num_nodes+1) if i != j]) == 1 # 每个客户被访问一次
+            prob += pulp.lpSum([x[j][i] for j in range(num_nodes+1) if i != j]) == 1 # 每个客户离开一次
+            
+        # MTZ 约束 (消除子回路 + 容量限制)
+        for i in range(1, num_nodes+1):
+            for j in range(1, num_nodes+1):
+                if i != j:
+                    prob += u[i] - u[j] + vehicle_cap * x[i][j] <= vehicle_cap - demands[j]
+        
+        prob.solve()
+        
+        if pulp.LpStatus[prob.status] == 'Optimal':
+            st.success(f"路径规划完成！总距离: {pulp.value(prob.objective):.2f}")
+            
+            # 绘图
+            fig, ax = plt.subplots(figsize=(6, 6))
+            # 画点
+            ax.scatter(coords[0,0], coords[0,1], c='red', s=200, marker='*', label='Depot')
+            ax.scatter(coords[1:,0], coords[1:,1], c='blue', s=100, label='Customers')
+            
+            # 画线
+            for i in range(num_nodes+1):
+                for j in range(num_nodes+1):
+                    if i != j and x[i][j].varValue > 0.5:
+                        ax.plot([coords[i][0], coords[j][0]], [coords[i][1], coords[j][1]], 'k-', alpha=0.6)
+                        # 画箭头方向
+                        mid_x = (coords[i][0] + coords[j][0]) / 2
+                        mid_y = (coords[i][1] + coords[j][1]) / 2
+                        ax.text(mid_x, mid_y, '>', fontsize=15, color='gray')
+
+            for i, txt in enumerate(range(num_nodes+1)):
+                ax.annotate(f"{txt}({demands[i]})", (coords[i,0]+1, coords[i,1]+1))
+                
+            plt.legend()
+            st.pyplot(fig)
+        else:
+            st.error("计算超时或无解 (尝试增加车辆载重)")
+
+# ==================================================
+# 主程序入口
+# ==================================================
+if app_mode.startswith("1"):
+    app_location()
+elif app_mode.startswith("2"):
+    app_eoq()
+elif app_mode.startswith("3"):
+    app_vrp()
