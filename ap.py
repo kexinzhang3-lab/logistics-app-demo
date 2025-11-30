@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-st.set_page_config(page_title="Logistics Master v6.3", layout="wide")
+st.set_page_config(page_title="Logistics Decision App", layout="wide")
 
 # --- 1. 语言设置 ---
 if 'language' not in st.session_state:
@@ -15,113 +15,49 @@ if 'language' not in st.session_state:
 def toggle_language():
     st.session_state.language = 'en' if st.session_state.language == 'zh' else 'zh'
 
-# --- 2. 双语字典 ---
+# --- 2. 双语字典 (核心错误修复点) ---
 tr = {
     'zh': {
-        'title': "🚛 物流决策支持系统 v6.3 (最终修复版)",
+        'title': "🚛 物流决策支持系统",
         'subtitle': "集成数量折扣模型、路径规划与选址优化的综合平台",
         'sidebar_title': "⚙️ 控制面板",
         'modules': ["1. 车辆路径规划 (VRP)", "2. 数量折扣 EOQ (分段价格)", "3. 选址优化 (MIP)"],
-        # VRP
-        'vrp_title': "🗺️ 车辆路径规划系统",
-        'vrp_mode': "数据输入方式",
-        'vrp_modes': ["方式 A: 输入 X/Y 坐标 (地图模式)", "方式 B: 输入距离矩阵 (课本模式)"],
-        'vrp_params': "👇在此配置参数",
-        'num_cust': "客户数量",
-        'veh_cap': "车辆载重",
-        'open_vrp': "车辆不回仓库 (Open VRP)",
-        'open_vrp_hint': "勾选后，车辆送完最后一个客户直接下班。",
-        'btn_plan': "🚀 立即规划路径",
-        'no_solution': "无解 (可能载重不足)",
-        'res_dist': "总行驶距离",
-        'res_veh': "所需车辆",
-        'demand_table': "各点需求量",
-        'dist_table': "距离矩阵 (km)",
-        'coord_table': "坐标列表",
-        # EOQ (已核对所有 key)
+        # VRP Keys (保持不变)
+        'vrp_title': "🗺️ 车辆路径规划系统", 'vrp_mode': "数据输入方式", 'vrp_modes': ["方式 A: 输入 X/Y 坐标 (地图模式)", "方式 B: 输入距离矩阵 (课本模式)"],
+        'vrp_params': "👇在此配置参数", 'num_cust': "客户数量", 'veh_cap': "车辆载重", 'open_vrp': "车辆不回仓库 (Open VRP)",
+        'open_vrp_hint': "勾选后，车辆送完最后一个客户直接下班。", 'btn_plan': "🚀 立即规划路径", 'no_solution': "无解 (可能载重不足)",
+        'res_dist': "总行驶距离", 'res_veh': "所需车辆", 'demand_table': "各点需求量", 'dist_table': "距离矩阵 (km)", 'coord_table': "坐标列表",
+        # EOQ Keys (核心修复点，确保所有键都在这里)
         'eoq_title': "📦 数量折扣 EOQ 模型 (Quantity Discount)",
-        'tab1': "🧮 计算器",
-        'tab2': "📖 公式原理",
-        'D': "年需求量 (D)",
-        'S': "单次订货成本 (S)",
-        'H': "单位储存费 (H)",
-        'btn_calc': "📊 计算最优方案",
-        'best_qty': "🏆 最佳订货量 (Q*)",
-        'min_cost': "💰 最低年总成本",
-        'cost_breakdown': "成本构成：采购 {0} + 订货 {1} + 储存 {2}",
-        'recommendation': "💡 决策建议：应选择第 {0} 档价格区间，利用折扣优势。",
-        'eoq_desc': "该模型用于平衡订货、储存与采购折扣的成本。", 
-        'col_min': "最小数量",
-        'col_max': "最大数量 (超大填999999)",
-        'col_price': "单价 (C)",
-        'col_setup': "单次订货费 (S)",
-        'col_hold': "单位储存费 (H)",
-        # Location
-        'loc_title': "🏭 工厂选址与运输优化 (MIP)",
-        'n_factories': "备选工厂数量",
-        'n_customers': "客户数量",
-        'cap_label': "最大产能",
-        'fixed_cost': "建设成本",
-        'dem_label': "需求量",
-        'btn_loc_calc': "🚀 计算最优选址",
-        'total_cost': "总综合成本",
-        'trans_cost': "运输费用",
-        'build_cost': "建设成本",
-        'loc_optimal': "最优方案已找到！",
-        'loc_infeasible': "无解 (产能不足)"
+        'tab1': "🧮 计算器", 'tab2': "📖 公式原理", 'D': "年需求量 (D)", 'S': "单次订货成本 (S)", 'H': "单位储存费 (H)",
+        'discount_table': "📋 价格分段表 (请直接修改表格)", # **就是这个 Key，确保它存在！**
+        'col_min': "最小数量", 'col_max': "最大数量 (超大填999999)", 'col_price': "单价 (C)", 'col_setup': "单次订货费 (S)",
+        'col_hold': "单位储存费 (H)", 'btn_calc': "📊 计算最优方案", 'best_qty': "🏆 最佳订货量 (Q*)",
+        'min_cost': "💰 最低年总成本", 'cost_breakdown': "成本构成：采购 {0} + 订货 {1} + 储存 {2}",
+        'recommendation': "💡 决策建议：应选择第 {0} 档价格区间，利用折扣优势。", 'eoq_desc': "该模型用于平衡订货、储存与采购折扣的成本。", 
+        # Location Keys (保持不变)
+        'loc_title': "🏭 工厂选址与运输优化 (MIP)", 'n_factories': "备选工厂数量", 'n_customers': "客户数量", 'cap_label': "最大产能",
+        'fixed_cost': "建设成本", 'dem_label': "需求量", 'btn_loc_calc': "🚀 计算最优选址", 'total_cost': "总综合成本",
+        'trans_cost': "运输费用", 'build_cost': "建设成本", 'loc_optimal': "最优方案已找到！", 'loc_infeasible': "无解 (产能不足)"
     },
     'en': {
-        'title': "🚛 Logistics Master v6.3",
+        'title': "🚛 Logistics Decision Support System",
         'subtitle': "Integrated Platform for OR, Inventory & Routing",
         'sidebar_title': "⚙️ Control Panel",
         'modules': ["1. Vehicle Routing (VRP)", "2. Quantity Discount EOQ", "3. Facility Location (MIP)"],
-        # VRP
-        'vrp_title': "🗺️ Vehicle Routing System",
-        'vrp_mode': "Input Mode",
-        'vrp_modes': ["Mode A: Coordinates", "Mode B: Distance Matrix"],
-        'vrp_params': "👇 Parameters",
-        'num_cust': "Customers",
-        'veh_cap': "Vehicle Capacity",
-        'open_vrp': "Open VRP",
-        'open_vrp_hint': "No return to depot.",
-        'btn_plan': "🚀 Optimize Routes",
-        'no_solution': "Infeasible",
-        'res_dist': "Total Distance",
-        'res_veh': "Vehicles Used",
-        'demand_table': "Demands",
-        'dist_table': "Distance Matrix (km)",
-        'coord_table': "Coordinates List",
-        # EOQ
-        'eoq_title': "📦 Quantity Discount EOQ Model",
-        'tab1': "🧮 Calculator",
-        'tab2': "📖 Formula",
-        'D': "Annual Demand (D)",
-        'S': "Setup Cost (S)",
-        'H': "Holding Cost (H)",
-        'btn_calc': "Calculate Optimal",
-        'best_qty': "Optimal Order Qty",
-        'min_cost': "Min Total Cost",
-        'cost_breakdown': "Breakdown: Purchase {0} + Setup {1} + Holding {2}",
-        'recommendation': "Recommendation: Select Tier {0} to leverage discounts.",
-        'eoq_desc': "Balances setup costs and holding costs.",
-        'col_min': "Min Qty",
-        'col_max': "Max Qty",
-        'col_price': "Unit Price (C)",
-        'col_setup': "Setup Cost (S)",
-        'col_hold': "Holding Cost (H)",
-        # Location
-        'loc_title': "🏭 Facility Location (MIP)",
-        'n_factories': "Potential Factories",
-        'n_customers': "Customers",
-        'cap_label': "Capacity",
-        'fixed_cost': "Fixed Cost",
-        'dem_label': "Demand",
-        'btn_loc_calc': "Optimize Location",
-        'total_cost': "Total Cost",
-        'trans_cost': "Transport Cost",
-        'build_cost': "Construction Cost",
-        'loc_optimal': "Optimal Solution Found!",
-        'loc_infeasible': "Infeasible"
+        # VRP Keys
+        'vrp_title': "🗺️ Vehicle Routing System", 'vrp_mode': "Input Mode", 'vrp_modes': ["Mode A: Coordinates", "Mode B: Distance Matrix"],
+        'vrp_params': "👇 Parameters", 'num_cust': "Customers", 'veh_cap': "Vehicle Capacity", 'open_vrp': "Open VRP",
+        'open_vrp_hint': "No return to depot.", 'btn_plan': "🚀 Optimize Routes", 'no_solution': "Infeasible", 'res_dist': "Total Distance", 'res_veh': "Vehicles Used", 'demand_table': "Demands", 'dist_table': "Distance Matrix (km)", 'coord_table': "Coordinates List",
+        # EOQ Keys (核心修复点)
+        'eoq_title': "📦 Quantity Discount EOQ Model", 'tab1': "🧮 Calculator", 'tab2': "📖 Formula", 'D': "Annual Demand (D)", 'S': "Setup Cost (S)", 'H': "Holding Cost (H)",
+        'discount_table': "📋 Price Break Table (Editable)", # **确保这个 Key 存在！**
+        'col_min': "Min Qty", 'col_max': "Max Qty", 'col_price': "Unit Price (C)", 'col_setup': "Setup Cost (S)", 'col_hold': "Holding Cost (H)",
+        'btn_calc': "Calculate Optimal", 'best_qty': "Optimal Order Qty", 'min_cost': "Min Total Cost", 'cost_breakdown': "Breakdown: Purchase {0} + Setup {1} + Holding {2}",
+        'recommendation': "Recommendation: Select Tier {0} to leverage discounts.", 'eoq_desc': "Balances setup costs and holding costs.",
+        # Location Keys (保持不变)
+        'loc_title': "🏭 Facility Location (MIP)", 'n_factories': "Potential Factories", 'n_customers': "Customers", 'cap_label': "Capacity", 'fixed_cost': "Fixed Cost", 'dem_label': "Demand",
+        'btn_loc_calc': "Optimize Location", 'total_cost': "Total Cost", 'trans_cost': "Transport Cost", 'build_cost': "Construction Cost", 'loc_optimal': "Optimal Solution Found!", 'loc_infeasible': "Infeasible"
     }
 }
 t = tr[st.session_state.language]
@@ -143,7 +79,7 @@ with st.sidebar:
     st.markdown("---")
 
 # ==================================================
-# 模块 1: VRP (已修复)
+# 模块 1: VRP (保持不变)
 # ==================================================
 def app_vrp():
     st.subheader(t['vrp_title'])
@@ -271,8 +207,7 @@ def app_eoq():
         results = []
         
         for index, row in df.iterrows():
-            # 采用 get() 方法防止 Streamlit 内部状态冲突
-            # **注意这里的修复：使用 .get() 方法，避免直接用 [] 访问导致 KeyError**
+            # 采用 get() 方法确保即使 Streamlit 内部状态冲突，程序也不会崩溃
             S = row.get(t['col_setup'], 50) 
             H = row.get(t['col_hold'], 2.0)
             C = row.get(t['col_price'], 10.0)
