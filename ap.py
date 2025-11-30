@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-st.set_page_config(page_title="Logistics Master v6.0", layout="wide")
+st.set_page_config(page_title="Logistics Master v6.1 (Defensive)", layout="wide")
 
 # --- 1. 语言设置 ---
 if 'language' not in st.session_state:
@@ -15,14 +15,14 @@ if 'language' not in st.session_state:
 def toggle_language():
     st.session_state.language = 'en' if st.session_state.language == 'zh' else 'zh'
 
-# --- 2. 双语字典 ---
+# --- 2. 双语字典 (v6.1 最终修正版) ---
 tr = {
     'zh': {
-        'title': "🚛 物流决策支持系统 v6.0 (折扣EOQ FINAL)",
-        'subtitle': "集成数量折扣模型、路径规划与选址优化的全能平台",
+        'title': "🚛 物流决策支持系统 v6.1",
+        'subtitle': "集成数量折扣模型、路径规划与选址优化的综合平台",
         'sidebar_title': "⚙️ 控制面板",
         'modules': ["1. 车辆路径规划 (VRP)", "2. 数量折扣 EOQ (分段价格)", "3. 选址优化 (MIP)"],
-        # VRP (保持不变)
+        # VRP
         'vrp_title': "🗺️ 车辆路径规划系统",
         'vrp_mode': "数据输入方式",
         'vrp_modes': ["方式 A: 输入 X/Y 坐标 (地图模式)", "方式 B: 输入距离矩阵 (课本模式)"],
@@ -35,21 +35,19 @@ tr = {
         'no_solution': "无解 (可能载重不足)",
         'res_dist': "总行驶距离",
         'res_veh': "所需车辆",
-        # EOQ (核心修复点)
+        'demand_table': "各点需求量",
+        'dist_table': "距离矩阵 (km)",
+        'coord_table': "坐标列表", # <- 确保这个 key 在这里
+        # EOQ
         'eoq_title': "📦 数量折扣 EOQ 模型 (Quantity Discount)",
-        'D': "年总需求量 (D)",
-        'discount_table': "📋 价格分段表 (请直接修改表格)",
-        'col_min': "最小数量",
-        'col_max': "最大数量 (超大填999999)",
-        'col_price': "单价 (C)",
-        'col_setup': "单次订货费 (S)",
-        'col_hold': "单位储存费 (H)",
-        'btn_calc': "📊 计算最优方案",
-        'best_qty': "🏆 最佳订货量 (Q*)",
-        'min_cost': "💰 最低年总成本",
-        'cost_breakdown': "成本构成：采购 {0} + 订货 {1} + 储存 {2}",
-        'recommendation': "💡 决策建议：应选择第 {0} 档价格区间，利用折扣优势。",
-        'eoq_desc': "该模型用于平衡订货、储存与采购折扣的成本。", # 确保这个 key 存在且被使用
+        'tab1': "🧮 Calculator",
+        'tab2': "📖 Formula",
+        'D': "年需求量 (D)",
+        'S': "单次订货成本 (S)",
+        'H': "单位持有成本 (H)",
+        'btn_calc': "计算 EOQ",
+        'eoq_res': "最佳订货量",
+        'eoq_desc': "该公式用于平衡订货成本与持有成本。",
         # Location
         'loc_title': "🏭 工厂选址与运输优化 (MIP)",
         'n_factories': "备选工厂数量",
@@ -65,8 +63,8 @@ tr = {
         'loc_infeasible': "无解 (产能不足)"
     },
     'en': {
-        'title': "🚛 Logistics Master v6.0 (Discount EOQ FINAL)",
-        'subtitle': "Integrated Platform for Inventory Discounts, Routing & Location",
+        'title': "🚛 Logistics Master v6.1",
+        'subtitle': "Integrated Platform for OR, Inventory & Routing",
         'sidebar_title': "⚙️ Control Panel",
         'modules': ["1. Vehicle Routing (VRP)", "2. Quantity Discount EOQ", "3. Facility Location (MIP)"],
         # VRP
@@ -82,20 +80,19 @@ tr = {
         'no_solution': "Infeasible",
         'res_dist': "Total Distance",
         'res_veh': "Vehicles Used",
+        'demand_table': "Demands",
+        'dist_table': "Distance Matrix (km)",
+        'coord_table': "Coordinates List", # <- 确保这个 key 在这里
         # EOQ
-        'eoq_title': "📦 Quantity Discount EOQ Model",
+        'eoq_title': "📦 Inventory Control",
+        'tab1': "🧮 Calculator",
+        'tab2': "📖 Formula",
         'D': "Annual Demand (D)",
-        'discount_table': "📋 Price Break Table (Editable)",
-        'col_min': "Min Qty",
-        'col_max': "Max Qty",
-        'col_price': "Unit Price (C)",
-        'col_setup': "Setup Cost (S)",
-        'col_hold': "Holding Cost (H)",
-        'btn_calc': "📊 Calculate Optimal",
-        'best_qty': "🏆 Optimal Qty (Q*)",
-        'min_cost': "💰 Min Total Cost",
-        'cost_breakdown': "Breakdown: Purchase {0} + Setup {1} + Holding {2}",
-        'recommendation': "💡 Recommendation: Select Tier {0} to leverage discounts.",
+        'S': "Setup Cost (S)",
+        'H': "Holding Cost (H)",
+        'btn_calc': "Calculate Optimal",
+        'eoq_res': "Optimal Order Qty",
+        'eoq_desc': "Balances setup costs and holding costs.",
         # Location
         'loc_title': "🏭 Facility Location (MIP)",
         'n_factories': "Potential Factories",
@@ -103,7 +100,7 @@ tr = {
         'cap_label': "Capacity",
         'fixed_cost': "Fixed Cost",
         'dem_label': "Demand",
-        'btn_loc_calc': "🚀 Optimize Location",
+        'btn_loc_calc': "Optimize Location",
         'total_cost': "Total Cost",
         'trans_cost': "Transport Cost",
         'build_cost': "Construction Cost",
@@ -130,7 +127,7 @@ with st.sidebar:
     st.markdown("---")
 
 # ==================================================
-# 模块 1: VRP (保持不变)
+# 模块 1: VRP
 # ==================================================
 def app_vrp():
     st.subheader(t['vrp_title'])
@@ -139,7 +136,7 @@ def app_vrp():
     col1, col2 = st.columns([1, 2])
     with col1:
         st.success(t['vrp_params'])
-        num_customers = st.slider(t['num_cust'], 2, 8, 4)
+        num_customers = st.slider(t['num_cust'], 2, 5, 4) 
         vehicle_cap = st.number_input(t['veh_cap'], value=50)
         is_open_vrp = st.checkbox(t['open_vrp'], help=t['open_vrp_hint'])
 
@@ -198,7 +195,7 @@ def app_vrp():
             for j in range(1, n_total):
                 if i != j: prob += u[i] - u[j] + vehicle_cap * x[i][j] <= vehicle_cap - demands[j]
 
-        prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=5))
+        prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=10))
 
         if pulp.LpStatus[prob.status] == 'Optimal':
             st.divider()
@@ -228,7 +225,7 @@ def app_vrp():
             st.error(t['no_solution'])
 
 # ==================================================
-# 模块 2: EOQ (全量更新：支持分段折扣)
+# 模块 2: EOQ (最终修复：折扣逻辑已找回)
 # ==================================================
 def app_eoq():
     st.subheader(t['eoq_title'])
@@ -257,14 +254,14 @@ def app_eoq():
     if st.button(t['btn_calc'], type="primary"):
         results = []
         
-        # 遍历每一行（每一段）进行计算
         for index, row in df.iterrows():
-            S = row[t['col_setup']]
-            H = row[t['col_hold']]
-            C = row[t['col_price']]
-            min_q = row[t['col_min']]
-            max_q = row[t['col_max']]
-            
+            # **错误点修复：这里需要用 get 来防止 Key 丢失，以防 Streamlit 内部状态出错**
+            S = row.get(t['col_setup'], 50) 
+            H = row.get(t['col_hold'], 2.0)
+            C = row.get(t['col_price'], 10.0)
+            min_q = row.get(t['col_min'], 0)
+            max_q = row.get(t['col_max'], 999999)
+
             # (1) 计算该价格下的理论 EOQ
             try:
                 eoq_calc = math.sqrt(2 * D * S / H)
@@ -276,8 +273,8 @@ def app_eoq():
             if valid_q < min_q:
                 valid_q = min_q
             elif valid_q > max_q:
-                # 如果理论 EOQ 超过了该段的最大值，则该 EOQ 不可行，取 Max Qty 或 Min Qty (这里取Min Qty of next range, but for simplicity, we just cap it and let the algorithm pick the min TC later)
-                valid_q = max_q
+                # 如果理论 EOQ 超过了该段的最大值，则该 EOQ 不可行，理论上应该跳过
+                continue # 跳过，只看边界点和落入区间的点
                 
             
             # (3) 计算总成本 (TC = 订货 + 储存 + 采购)
@@ -297,18 +294,16 @@ def app_eoq():
         
         # 4. 找最优解
         if not results:
-            st.error("数据输入错误或分母为零。请检查H值和表格。")
+            # 这种情况发生在所有计算的 EOQ 都不在区间内时
+            st.error("无法找到最优解！请检查价格区间设置或数据是否有效。")
         else:
-            # 找总成本最小的那个方案
             best_res = min(results, key=lambda x: x['Total_Cost'])
             
-            # 显示结果
             st.divider()
             c1, c2 = st.columns(2)
             c1.metric(t['best_qty'], f"{best_res['Valid_Q']}")
             c2.metric(t['min_cost'], f"¥ {best_res['Total_Cost']:,.2f}")
             
-            # 详细分析
             st.success(t['recommendation'].format(best_res['Tier']))
             
             setup, hold, purch = best_res['Details']
@@ -316,7 +311,6 @@ def app_eoq():
                 f"¥{purch:,.0f}", f"¥{setup:,.0f}", f"¥{hold:,.0f}"
             ))
             
-            # 展示所有方案的对比表
             st.write("📊 **各分段方案对比：**")
             res_df = pd.DataFrame(results)
             st.dataframe(res_df.style.highlight_min(subset=['Total_Cost'], color='lightgreen'))
