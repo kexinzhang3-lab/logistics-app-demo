@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-st.set_page_config(page_title="Logistics Master v6.2 (Stable)", layout="wide")
+st.set_page_config(page_title="Logistics Master v6.2.1", layout="wide")
 
 # --- 1. 语言设置 ---
 if 'language' not in st.session_state:
@@ -15,10 +15,10 @@ if 'language' not in st.session_state:
 def toggle_language():
     st.session_state.language = 'en' if st.session_state.language == 'zh' else 'zh'
 
-# --- 2. 双语字典 (最终修正版) ---
+# --- 2. 双语字典 ---
 tr = {
     'zh': {
-        'title': "🚛 物流决策支持系统 v6.2",
+        'title': "🚛 物流决策支持系统 v6.2.1 (最终稳定版)",
         'subtitle': "集成数量折扣模型、路径规划与选址优化的综合平台",
         'sidebar_title': "⚙️ 控制面板",
         'modules': ["1. 车辆路径规划 (VRP)", "2. 数量折扣 EOQ (分段价格)", "3. 选址优化 (MIP)"],
@@ -38,19 +38,17 @@ tr = {
         'demand_table': "各点需求量",
         'dist_table': "距离矩阵 (km)",
         'coord_table': "坐标列表",
-        # EOQ (核心修改区域：使用 get() 方法防止崩溃)
+        # EOQ (核心修复点)
         'eoq_title': "📦 数量折扣 EOQ 模型 (Quantity Discount)",
-        'D': "年总需求量 (D)",
-        'discount_table': "📋 价格分段表 (请直接修改表格)", # **就是这个 key 刚才导致了崩溃！**
-        'col_min': "最小数量",
-        'col_max': "最大数量 (超大填999999)",
-        'col_price': "单价 (C)",
-        'col_setup': "单次订货费 (S)",
-        'col_hold': "单位储存费 (H)",
+        'tab1': "🧮 计算器",
+        'tab2': "📖 公式原理",
+        'D': "年需求量 (D)",
+        'S': "单次订货成本 (S)",
+        'H': "单位储存费 (H)",
         'btn_calc': "📊 计算最优方案",
         'best_qty': "🏆 最佳订货量 (Q*)",
         'min_cost': "💰 最低年总成本",
-        'cost_breakdown': "成本构成：采购 {0} + 订货 {1} + 储存 {2}",
+        'cost_breakdown': "成本构成：采购 {0} + 订货 {1} + 储存 {2}", # 3个位置
         'recommendation': "💡 决策建议：应选择第 {0} 档价格区间，利用折扣优势。",
         'eoq_desc': "该模型用于平衡订货、储存与采购折扣的成本。", 
         # Location
@@ -63,13 +61,13 @@ tr = {
         'btn_loc_calc': "🚀 计算最优选址",
         'total_cost': "总综合成本",
         'trans_cost': "运输费用",
-        'build_cost': "建设费用",
+        'build_cost': "建设成本",
         'loc_optimal': "最优方案已找到！",
         'loc_infeasible': "无解 (产能不足)"
     },
     'en': {
-        'title': "🚛 Logistics Master v6.2",
-        'subtitle': "Integrated Platform for OR, Inventory & Routing",
+        'title': "🚛 Logistics Master v6.2.1",
+        'subtitle': "Integrated Platform for Inventory Discounts, Routing & Location",
         'sidebar_title': "⚙️ Control Panel",
         'modules': ["1. Vehicle Routing (VRP)", "2. Quantity Discount EOQ", "3. Facility Location (MIP)"],
         # VRP
@@ -135,7 +133,7 @@ with st.sidebar:
     st.markdown("---")
 
 # ==================================================
-# 模块 1: VRP
+# 模块 1: VRP (保持不变)
 # ==================================================
 def app_vrp():
     st.subheader(t['vrp_title'])
@@ -242,7 +240,7 @@ def app_eoq():
     D = st.number_input(t['D'], value=10000, step=100)
     
     # 2. 分段价格表 (可编辑)
-    st.write(t['discount_table']) # 确保这个 key 是对的
+    st.write(t['discount_table']) 
     
     # 初始化默认数据 (3段)
     if 'discount_df' not in st.session_state:
@@ -263,6 +261,7 @@ def app_eoq():
         results = []
         
         for index, row in df.iterrows():
+            # 采用 get() 方法防止 Streamlit 内部状态冲突
             S = row.get(t['col_setup'], 50) 
             H = row.get(t['col_hold'], 2.0)
             C = row.get(t['col_price'], 10.0)
@@ -312,8 +311,11 @@ def app_eoq():
             st.success(t['recommendation'].format(best_res['Tier']))
             
             setup, hold, purch = best_res['Details']
+            # **注意这里的修复：确保传入 format 的是三个参数，且顺序正确**
             st.info(t['cost_breakdown'].format(
-                f"¥{purch:,.0f}", f"¥{hold:,.0f}"
+                f"¥{purch:,.0f}",  # {0} Purchase
+                f"¥{setup:,.0f}",  # {1} Setup
+                f"¥{hold:,.0f}"    # {2} Holding
             ))
             
             st.write("📊 **各分段方案对比：**")
