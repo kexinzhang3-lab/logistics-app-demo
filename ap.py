@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-st.set_page_config(page_title="Logistics Master v6.1 (Defensive)", layout="wide")
+st.set_page_config(page_title="Logistics Master v6.2 (Stable)", layout="wide")
 
 # --- 1. 语言设置 ---
 if 'language' not in st.session_state:
@@ -15,10 +15,10 @@ if 'language' not in st.session_state:
 def toggle_language():
     st.session_state.language = 'en' if st.session_state.language == 'zh' else 'zh'
 
-# --- 2. 双语字典 (v6.1 最终修正版) ---
+# --- 2. 双语字典 (最终修正版) ---
 tr = {
     'zh': {
-        'title': "🚛 物流决策支持系统 v6.1",
+        'title': "🚛 物流决策支持系统 v6.2",
         'subtitle': "集成数量折扣模型、路径规划与选址优化的综合平台",
         'sidebar_title': "⚙️ 控制面板",
         'modules': ["1. 车辆路径规划 (VRP)", "2. 数量折扣 EOQ (分段价格)", "3. 选址优化 (MIP)"],
@@ -37,17 +37,22 @@ tr = {
         'res_veh': "所需车辆",
         'demand_table': "各点需求量",
         'dist_table': "距离矩阵 (km)",
-        'coord_table': "坐标列表", # <- 确保这个 key 在这里
-        # EOQ
+        'coord_table': "坐标列表",
+        # EOQ (核心修改区域：使用 get() 方法防止崩溃)
         'eoq_title': "📦 数量折扣 EOQ 模型 (Quantity Discount)",
-        'tab1': "🧮 Calculator",
-        'tab2': "📖 Formula",
-        'D': "年需求量 (D)",
-        'S': "单次订货成本 (S)",
-        'H': "单位持有成本 (H)",
-        'btn_calc': "计算 EOQ",
-        'eoq_res': "最佳订货量",
-        'eoq_desc': "该公式用于平衡订货成本与持有成本。",
+        'D': "年总需求量 (D)",
+        'discount_table': "📋 价格分段表 (请直接修改表格)", # **就是这个 key 刚才导致了崩溃！**
+        'col_min': "最小数量",
+        'col_max': "最大数量 (超大填999999)",
+        'col_price': "单价 (C)",
+        'col_setup': "单次订货费 (S)",
+        'col_hold': "单位储存费 (H)",
+        'btn_calc': "📊 计算最优方案",
+        'best_qty': "🏆 最佳订货量 (Q*)",
+        'min_cost': "💰 最低年总成本",
+        'cost_breakdown': "成本构成：采购 {0} + 订货 {1} + 储存 {2}",
+        'recommendation': "💡 决策建议：应选择第 {0} 档价格区间，利用折扣优势。",
+        'eoq_desc': "该模型用于平衡订货、储存与采购折扣的成本。", 
         # Location
         'loc_title': "🏭 工厂选址与运输优化 (MIP)",
         'n_factories': "备选工厂数量",
@@ -63,7 +68,7 @@ tr = {
         'loc_infeasible': "无解 (产能不足)"
     },
     'en': {
-        'title': "🚛 Logistics Master v6.1",
+        'title': "🚛 Logistics Master v6.2",
         'subtitle': "Integrated Platform for OR, Inventory & Routing",
         'sidebar_title': "⚙️ Control Panel",
         'modules': ["1. Vehicle Routing (VRP)", "2. Quantity Discount EOQ", "3. Facility Location (MIP)"],
@@ -82,16 +87,19 @@ tr = {
         'res_veh': "Vehicles Used",
         'demand_table': "Demands",
         'dist_table': "Distance Matrix (km)",
-        'coord_table': "Coordinates List", # <- 确保这个 key 在这里
+        'coord_table': "Coordinates List",
         # EOQ
-        'eoq_title': "📦 Inventory Control",
+        'eoq_title': "📦 Quantity Discount EOQ Model",
         'tab1': "🧮 Calculator",
         'tab2': "📖 Formula",
         'D': "Annual Demand (D)",
         'S': "Setup Cost (S)",
         'H': "Holding Cost (H)",
         'btn_calc': "Calculate Optimal",
-        'eoq_res': "Optimal Order Qty",
+        'best_qty': "Optimal Order Qty",
+        'min_cost': "Min Total Cost",
+        'cost_breakdown': "Breakdown: Purchase {0} + Setup {1} + Holding {2}",
+        'recommendation': "Recommendation: Select Tier {0} to leverage discounts.",
         'eoq_desc': "Balances setup costs and holding costs.",
         # Location
         'loc_title': "🏭 Facility Location (MIP)",
@@ -234,7 +242,7 @@ def app_eoq():
     D = st.number_input(t['D'], value=10000, step=100)
     
     # 2. 分段价格表 (可编辑)
-    st.write(t['discount_table'])
+    st.write(t['discount_table']) # 确保这个 key 是对的
     
     # 初始化默认数据 (3段)
     if 'discount_df' not in st.session_state:
@@ -255,7 +263,6 @@ def app_eoq():
         results = []
         
         for index, row in df.iterrows():
-            # **错误点修复：这里需要用 get 来防止 Key 丢失，以防 Streamlit 内部状态出错**
             S = row.get(t['col_setup'], 50) 
             H = row.get(t['col_hold'], 2.0)
             C = row.get(t['col_price'], 10.0)
@@ -273,8 +280,7 @@ def app_eoq():
             if valid_q < min_q:
                 valid_q = min_q
             elif valid_q > max_q:
-                # 如果理论 EOQ 超过了该段的最大值，则该 EOQ 不可行，理论上应该跳过
-                continue # 跳过，只看边界点和落入区间的点
+                continue 
                 
             
             # (3) 计算总成本 (TC = 订货 + 储存 + 采购)
@@ -294,7 +300,6 @@ def app_eoq():
         
         # 4. 找最优解
         if not results:
-            # 这种情况发生在所有计算的 EOQ 都不在区间内时
             st.error("无法找到最优解！请检查价格区间设置或数据是否有效。")
         else:
             best_res = min(results, key=lambda x: x['Total_Cost'])
@@ -308,7 +313,7 @@ def app_eoq():
             
             setup, hold, purch = best_res['Details']
             st.info(t['cost_breakdown'].format(
-                f"¥{purch:,.0f}", f"¥{setup:,.0f}", f"¥{hold:,.0f}"
+                f"¥{purch:,.0f}", f"¥{hold:,.0f}"
             ))
             
             st.write("📊 **各分段方案对比：**")
