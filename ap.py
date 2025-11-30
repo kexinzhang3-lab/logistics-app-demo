@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-st.set_page_config(page_title="Logistics Master v5.2", layout="wide")
+st.set_page_config(page_title="Logistics Master v6.0", layout="wide")
 
 # --- 1. 语言设置 ---
 if 'language' not in st.session_state:
@@ -15,14 +15,14 @@ if 'language' not in st.session_state:
 def toggle_language():
     st.session_state.language = 'en' if st.session_state.language == 'zh' else 'zh'
 
-# --- 2. 双语字典 (v5.2 修正版) ---
+# --- 2. 双语字典 ---
 tr = {
     'zh': {
-        'title': "🚛 物流决策支持系统 v5.2",
-        'subtitle': "集成运筹优化、库存管理与路径规划的综合平台",
+        'title': "🚛 物流决策支持系统 v6.0 (折扣EOQ FINAL)",
+        'subtitle': "集成数量折扣模型、路径规划与选址优化的全能平台",
         'sidebar_title': "⚙️ 控制面板",
-        'modules': ["1. 车辆路径规划 (VRP)", "2. EOQ 库存模型", "3. 选址优化 (MIP)"],
-        # VRP
+        'modules': ["1. 车辆路径规划 (VRP)", "2. 数量折扣 EOQ (分段价格)", "3. 选址优化 (MIP)"],
+        # VRP (保持不变)
         'vrp_title': "🗺️ 车辆路径规划系统",
         'vrp_mode': "数据输入方式",
         'vrp_modes': ["方式 A: 输入 X/Y 坐标 (地图模式)", "方式 B: 输入距离矩阵 (课本模式)"],
@@ -35,19 +35,21 @@ tr = {
         'no_solution': "无解 (可能载重不足)",
         'res_dist': "总行驶距离",
         'res_veh': "所需车辆",
-        'demand_table': "各点需求量",
-        'dist_table': "距离矩阵 (km)",
-        'coord_table': "坐标列表",
-        # EOQ (这里是之前报错的重灾区，已修复)
-        'eoq_title': "📦 库存控制中心",
-        'tab1': "🧮 计算器",
-        'tab2': "📖 公式原理",
-        'D': "年需求量 (D)",
-        'S': "单次订货成本 (S)",
-        'H': "单位持有成本 (H)",
-        'btn_calc': "计算 EOQ",
-        'eoq_res': "最佳订货量",
-        'eoq_desc': "该公式用于平衡订货成本与持有成本。", # 确保这个键存在！
+        # EOQ (核心修复点)
+        'eoq_title': "📦 数量折扣 EOQ 模型 (Quantity Discount)",
+        'D': "年总需求量 (D)",
+        'discount_table': "📋 价格分段表 (请直接修改表格)",
+        'col_min': "最小数量",
+        'col_max': "最大数量 (超大填999999)",
+        'col_price': "单价 (C)",
+        'col_setup': "单次订货费 (S)",
+        'col_hold': "单位储存费 (H)",
+        'btn_calc': "📊 计算最优方案",
+        'best_qty': "🏆 最佳订货量 (Q*)",
+        'min_cost': "💰 最低年总成本",
+        'cost_breakdown': "成本构成：采购 {0} + 订货 {1} + 储存 {2}",
+        'recommendation': "💡 决策建议：应选择第 {0} 档价格区间，利用折扣优势。",
+        'eoq_desc': "该模型用于平衡订货、储存与采购折扣的成本。", # 确保这个 key 存在且被使用
         # Location
         'loc_title': "🏭 工厂选址与运输优化 (MIP)",
         'n_factories': "备选工厂数量",
@@ -63,10 +65,10 @@ tr = {
         'loc_infeasible': "无解 (产能不足)"
     },
     'en': {
-        'title': "🚛 Logistics Master v5.2",
-        'subtitle': "Integrated Platform for OR, Inventory & Routing",
+        'title': "🚛 Logistics Master v6.0 (Discount EOQ FINAL)",
+        'subtitle': "Integrated Platform for Inventory Discounts, Routing & Location",
         'sidebar_title': "⚙️ Control Panel",
-        'modules': ["1. Vehicle Routing (VRP)", "2. EOQ Model", "3. Facility Location (MIP)"],
+        'modules': ["1. Vehicle Routing (VRP)", "2. Quantity Discount EOQ", "3. Facility Location (MIP)"],
         # VRP
         'vrp_title': "🗺️ Vehicle Routing System",
         'vrp_mode': "Input Mode",
@@ -80,19 +82,20 @@ tr = {
         'no_solution': "Infeasible",
         'res_dist': "Total Distance",
         'res_veh': "Vehicles Used",
-        'demand_table': "Demands",
-        'dist_table': "Distance Matrix (km)",
-        'coord_table': "Coordinates",
         # EOQ
-        'eoq_title': "📦 Inventory Control",
-        'tab1': "🧮 Calculator",
-        'tab2': "📖 Formula",
+        'eoq_title': "📦 Quantity Discount EOQ Model",
         'D': "Annual Demand (D)",
-        'S': "Setup Cost (S)",
-        'H': "Holding Cost (H)",
-        'btn_calc': "Calculate EOQ",
-        'eoq_res': "Optimal Order Qty",
-        'eoq_desc': "Balances setup costs and holding costs.", # 确保存在！
+        'discount_table': "📋 Price Break Table (Editable)",
+        'col_min': "Min Qty",
+        'col_max': "Max Qty",
+        'col_price': "Unit Price (C)",
+        'col_setup': "Setup Cost (S)",
+        'col_hold': "Holding Cost (H)",
+        'btn_calc': "📊 Calculate Optimal",
+        'best_qty': "🏆 Optimal Qty (Q*)",
+        'min_cost': "💰 Min Total Cost",
+        'cost_breakdown': "Breakdown: Purchase {0} + Setup {1} + Holding {2}",
+        'recommendation': "💡 Recommendation: Select Tier {0} to leverage discounts.",
         # Location
         'loc_title': "🏭 Facility Location (MIP)",
         'n_factories': "Potential Factories",
@@ -127,7 +130,7 @@ with st.sidebar:
     st.markdown("---")
 
 # ==================================================
-# 模块 1: VRP
+# 模块 1: VRP (保持不变)
 # ==================================================
 def app_vrp():
     st.subheader(t['vrp_title'])
@@ -225,41 +228,101 @@ def app_vrp():
             st.error(t['no_solution'])
 
 # ==================================================
-# 模块 2: EOQ (修复 Key)
+# 模块 2: EOQ (全量更新：支持分段折扣)
 # ==================================================
 def app_eoq():
     st.subheader(t['eoq_title'])
     
-    tab1, tab2 = st.tabs([t['tab1'], t['tab2']])
+    # 1. 需求量输入
+    D = st.number_input(t['D'], value=10000, step=100)
     
-    with tab1:
-        c1, c2, c3 = st.columns(3)
-        D_val = c1.number_input(t['D'], 10000)
-        S_val = c2.number_input(t['S'], 50)
-        H_val = c3.number_input(t['H'], 2.5)
+    # 2. 分段价格表 (可编辑)
+    st.write(t['discount_table'])
+    
+    # 初始化默认数据 (3段)
+    if 'discount_df' not in st.session_state:
+        data = {
+            t['col_min']: [0, 2000, 5000],
+            t['col_max']: [1999, 4999, 999999],
+            t['col_price']: [10.0, 9.5, 9.0],  # 价格递减
+            t['col_setup']: [50.0, 50.0, 50.0], # 订货费 (可修改)
+            t['col_hold']: [2.0, 2.0, 2.0]      # 储存费 (可修改)
+        }
+        st.session_state.discount_df = pd.DataFrame(data)
+    
+    # 显示并允许用户编辑表格
+    df = st.data_editor(st.session_state.discount_df, num_rows="dynamic", use_container_width=True)
+    
+    # 3. 计算逻辑
+    if st.button(t['btn_calc'], type="primary"):
+        results = []
         
-        if st.button(t['btn_calc']):
-            eoq = int(math.sqrt(2*D_val*S_val/H_val))
-            st.balloons()
-            st.success(f"{t['eoq_res']}: **{eoq}**")
+        # 遍历每一行（每一段）进行计算
+        for index, row in df.iterrows():
+            S = row[t['col_setup']]
+            H = row[t['col_hold']]
+            C = row[t['col_price']]
+            min_q = row[t['col_min']]
+            max_q = row[t['col_max']]
             
-            numerator = 2 * D_val * S_val
-            fraction = numerator / H_val
+            # (1) 计算该价格下的理论 EOQ
+            try:
+                eoq_calc = math.sqrt(2 * D * S / H)
+            except:
+                continue
             
-            st.info("💡 **Step-by-Step:**")
-            st.markdown(f"""
-            1. $2 \\times {D_val} \\times {S_val} = {numerator}$
-            2. ${numerator} \\div {H_val} = {fraction}$
-            3. $\\sqrt{{{fraction}}} \\approx {eoq}$
-            """)
-    
-    with tab2:
-        st.latex(r"Q^* = \sqrt{\frac{2DS}{H}}")
-        # 这里就是之前报错的地方，现在确保字典里肯定有这个 key
-        st.caption(t.get('eoq_desc', "Formula Description"))
+            # (2) 确定实际可行订货量 (Valid Q)
+            valid_q = eoq_calc
+            if valid_q < min_q:
+                valid_q = min_q
+            elif valid_q > max_q:
+                # 如果理论 EOQ 超过了该段的最大值，则该 EOQ 不可行，取 Max Qty 或 Min Qty (这里取Min Qty of next range, but for simplicity, we just cap it and let the algorithm pick the min TC later)
+                valid_q = max_q
+                
+            
+            # (3) 计算总成本 (TC = 订货 + 储存 + 采购)
+            setup_cost_total = (D / valid_q) * S
+            holding_cost_total = (valid_q / 2) * H
+            purchase_cost_total = D * C
+            total_cost = setup_cost_total + holding_cost_total + purchase_cost_total
+            
+            results.append({
+                "Tier": index + 1,
+                "Calc_EOQ": int(eoq_calc),
+                "Valid_Q": int(valid_q),
+                "Total_Cost": total_cost,
+                "Details": (setup_cost_total, holding_cost_total, purchase_cost_total),
+                "Price_C": C
+            })
+        
+        # 4. 找最优解
+        if not results:
+            st.error("数据输入错误或分母为零。请检查H值和表格。")
+        else:
+            # 找总成本最小的那个方案
+            best_res = min(results, key=lambda x: x['Total_Cost'])
+            
+            # 显示结果
+            st.divider()
+            c1, c2 = st.columns(2)
+            c1.metric(t['best_qty'], f"{best_res['Valid_Q']}")
+            c2.metric(t['min_cost'], f"¥ {best_res['Total_Cost']:,.2f}")
+            
+            # 详细分析
+            st.success(t['recommendation'].format(best_res['Tier']))
+            
+            setup, hold, purch = best_res['Details']
+            st.info(t['cost_breakdown'].format(
+                f"¥{purch:,.0f}", f"¥{setup:,.0f}", f"¥{hold:,.0f}"
+            ))
+            
+            # 展示所有方案的对比表
+            st.write("📊 **各分段方案对比：**")
+            res_df = pd.DataFrame(results)
+            st.dataframe(res_df.style.highlight_min(subset=['Total_Cost'], color='lightgreen'))
 
 # ==================================================
-# 模块 3: 选址 (MIP)
+# 模块 3: 选址优化 (保持不变)
 # ==================================================
 def app_location():
     st.subheader(t['loc_title'])
@@ -329,7 +392,8 @@ def app_location():
             
             G = nx.DiGraph()
             pos = {}
-            for i, f in enumerate(factory_names):
+            for i in range(num_factories):
+                f = factory_names[i]
                 G.add_node(f, layer=0, status=('open' if f in opened else 'closed'))
                 pos[f] = (0, -i*1.5)
             for i, d in enumerate(customer_names):
