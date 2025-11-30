@@ -38,7 +38,7 @@ tr = {
         'demand_table': "各点需求量",
         'dist_table': "距离矩阵 (km)",
         'coord_table': "坐标列表",
-        # EOQ (核心修复点)
+        # EOQ (已核对所有 key)
         'eoq_title': "📦 数量折扣 EOQ 模型 (Quantity Discount)",
         'tab1': "🧮 计算器",
         'tab2': "📖 公式原理",
@@ -104,6 +104,11 @@ tr = {
         'cost_breakdown': "Breakdown: Purchase {0} + Setup {1} + Holding {2}",
         'recommendation': "Recommendation: Select Tier {0} to leverage discounts.",
         'eoq_desc': "Balances setup costs and holding costs.",
+        'col_min': "Min Qty",
+        'col_max': "Max Qty",
+        'col_price': "Unit Price (C)",
+        'col_setup': "Setup Cost (S)",
+        'col_hold': "Holding Cost (H)",
         # Location
         'loc_title': "🏭 Facility Location (MIP)",
         'n_factories': "Potential Factories",
@@ -266,7 +271,8 @@ def app_eoq():
         results = []
         
         for index, row in df.iterrows():
-            # 采用 get() 方法确保即使 Streamlit 内部状态冲突，程序也不会崩溃
+            # 采用 get() 方法防止 Streamlit 内部状态冲突
+            # **注意这里的修复：使用 .get() 方法，避免直接用 [] 访问导致 KeyError**
             S = row.get(t['col_setup'], 50) 
             H = row.get(t['col_hold'], 2.0)
             C = row.get(t['col_price'], 10.0)
@@ -275,7 +281,6 @@ def app_eoq():
 
             # (1) 计算该价格下的理论 EOQ
             try:
-                # 必须确保 H 不为 0
                 if H == 0:
                     st.error("储存成本(H)不能为零，否则公式无意义！")
                     return
@@ -392,7 +397,8 @@ def app_location():
             
             cols = st.columns(num_factories)
             opened = []
-            for i, f in enumerate(factory_names):
+            for i in range(num_factories):
+                f = factory_names[i]
                 if is_open[f].varValue > 0.5:
                     cols[i].success(f"{f}: ✅")
                     opened.append(f)
