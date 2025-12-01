@@ -1,1 +1,6 @@
-Flask==2.0.0
+streamlit
+pandas
+pulp
+networkx
+matplotlib
+numpy
