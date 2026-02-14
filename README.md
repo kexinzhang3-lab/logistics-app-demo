@@ -35,15 +35,9 @@ A comprehensive operations research platform integrating vehicle routing, invent
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Live Demo
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-streamlit run ap.py
-```
+**🌐 Web App:** https://logistics-app-demo-lun9fabpdgmefrpuubttuf.streamlit.app/
 
 ---
 
