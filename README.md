@@ -1,58 +1,79 @@
-# logistics-app-demo
-# 决策变量：从工厂i运到目的地j的数量
-flow = pulp.LpVariable.dicts("Route", (cost_matrix.index, cost_matrix.columns), 0, None, pulp.LpInteger)
+# 🚛 Logistics Decision Support System
 
-# 目标函数：最小化总运费
-prob += pulp.lpSum([flow[f][d] * edited_costs.loc[f, d] for f in cost_matrix.index for d in cost_matrix.columns])
+A comprehensive operations research platform integrating vehicle routing, inventory optimization, and facility location planning.
 
-# 约束条件：
-# 1. 工厂运出量 <= 产能
-for f in cost_matrix.index:
-    prob += pulp.lpSum([flow[f][d] for d in cost_matrix.columns]) <= supply_data[f]
+---
 
-# 2. 目的地收到量 >= 需求
-for d in cost_matrix.columns:
-    prob += pulp.lpSum([flow[f][d] for f in cost_matrix.index]) >= demand_data[d]
+## 🎯 Core Capabilities
 
-# 求解
-prob.solve()
+### 1. Vehicle Routing Problem (VRP) 车辆路径规划
+- Optimize delivery routes for minimal total distance
+- Support for both coordinate-based and distance-matrix inputs
+- Open VRP mode (no return to depot)
 
-# 5. 结果展示与绘图
-if pulp.LpStatus[prob.status] == 'Optimal':
-    st.success(f"找到最优方案！总费用: {pulp.value(prob.objective)}")
-    
-    # 准备绘图数据
-    G = nx.DiGraph()
-    pos = {}
-    labels = {}
-    edge_labels = {}
-    
-    # 设置节点位置：工厂在左(x=0)，目的地在右(x=1)
-    for i, f in enumerate(cost_matrix.index):
-        G.add_node(f, layer=0)
-        pos[f] = (0, -i) # 纵向排列
-    
-    for j, d in enumerate(cost_matrix.columns):
-        G.add_node(d, layer=1)
-        pos[d] = (1, -j) # 纵向排列
-        
-    # 添加连线（只画有运输量的线）
-    for f in cost_matrix.index:
-        for d in cost_matrix.columns:
-            amount = flow[f][d].varValue
-            if amount > 0:
-                G.add_edge(f, d)
-                edge_labels[(f, d)] = f"{int(amount)}"
+### 2. Quantity Discount EOQ Model 数量折扣经济订货批量
+- Dynamic pricing tier analysis
+- Minimizes total annual cost (purchase + setup + holding)
+- Bilingual support (Chinese/English)
 
-    # 画图
-    fig, ax = plt.subplots(figsize=(8, 6))
-    nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=2000, ax=ax)
-    nx.draw_networkx_labels(G, pos, ax=ax)
-    nx.draw_networkx_edges(G, pos, ax=ax, edge_color='gray', arrows=True, arrowsize=20, width=2)
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red', ax=ax)
-    
-    plt.axis('off')
-    st.pyplot(fig)
-    
-else:
-    st.error("无法找到可行解（可能总需求超过了总产能）")
+### 3. Facility Location Optimization 工厂选址优化
+- Mixed Integer Programming (MIP)
+- Balances construction costs and transportation costs
+- Capacity planning with demand fulfillment
+
+---
+
+## 🛠️ Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| UI Framework | Streamlit |
+| Optimization | PuLP (Linear Programming) |
+| Graph Algorithm | NetworkX |
+| Visualization | Matplotlib |
+| Data Processing | Pandas, NumPy |
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+streamlit run ap.py
+```
+
+---
+
+## 📁 Project Structure
+
+```
+logistics-app-demo/
+├── ap.py              # Main Streamlit application
+├── requirements.txt   # Python dependencies
+├── README.md          # This file
+├── scripts/           # Automation scripts
+├── .devcontainer/     # VS Code Dev Container config
+└── .github/           # GitHub Actions
+```
+
+---
+
+## 🔧 Features
+
+- **Bilingual Interface**: Switch between Chinese and English
+- **Interactive Visualization**: Route maps and cost breakdown charts
+- **Real-time Optimization**: Instant LP/MIP solution feedback
+- **GitHub Actions Integration**: Automated CI/CD workflow
+
+---
+
+## 📝 License
+
+MIT License - Feel free to use and modify.
+
+---
+
+**Built with Operations Research & Python** 🐍
